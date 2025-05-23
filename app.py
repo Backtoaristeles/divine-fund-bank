@@ -11,24 +11,30 @@ if 'admin_authenticated' not in st.session_state:
     st.session_state['admin_authenticated'] = False
 if 'deposits_data' not in st.session_state:
     st.session_state['deposits_data'] = {}
+if 'growth_data' not in st.session_state:
+    st.session_state['growth_data'] = {}
 
-# Function to calculate the growth for each deposit
-def calculate_growth(deposits_data, growth_percentage):
-    # Prepare a list of deposits with their growth
-    growth_data = {}
+# Function to calculate the growth for each deposit using the specific day growth rate
+def calculate_growth(deposits_data, growth_data):
+    growth_data_final = {}
     for user, deposits in deposits_data.items():
         user_growth = []
         total_balance = 0
-        for date, deposit in sorted(deposits.items()):
-            days_since_deposit = (datetime.today() - date).days
-            balance = deposit * (1 + growth_percentage) ** days_since_deposit
-            user_growth.append((date, deposit, balance))
+        for deposit_date, deposit in sorted(deposits.items()):
+            # Check the growth rate for the day
+            next_day = deposit_date + timedelta(days=1)
+            growth_rate = growth_data.get(deposit_date, 0)
+            
+            # Calculate balance
+            balance = deposit * (1 + growth_rate)
+            user_growth.append((deposit_date, deposit, balance))
             total_balance += balance
-        growth_data[user] = {
+
+        growth_data_final[user] = {
             'deposits': user_growth,
             'total_balance': total_balance
         }
-    return growth_data
+    return growth_data_final
 
 # Function for Admin to login
 def admin_login():
@@ -59,46 +65,58 @@ def add_new_deposit():
                 st.session_state['deposits_data'][username][deposit_date] = deposit_amount
                 st.success(f"Deposit of {deposit_amount} added for {username} on {deposit_date}")
 
-# Set the daily growth rate (admin tool)
-def set_growth_rate():
+# Set growth rate for each day-to-day transition
+def set_daily_growth_rate():
     if st.session_state.get('admin_authenticated', False):
-        st.title("Set Growth Rate")
-        growth_rate = st.number_input("Enter daily growth rate (as percentage):", min_value=0.0, max_value=100.0)
-        growth_rate /= 100  # Convert percentage to decimal
+        st.title("Set Daily Growth Rates")
+        st.write("Please enter the growth rate for each day-to-day transition. (In percentage form e.g., 5% as 0.05)")
         
-        if st.button("Set Growth Rate"):
-            st.session_state['growth_rate'] = growth_rate
-            st.success(f"Daily growth rate set to {growth_rate * 100}%")
+        growth_rates = {}
+        days = [("18th May to 19th May", "2025-05-18"), 
+                ("19th May to 20th May", "2025-05-19"), 
+                ("20th May to 21st May", "2025-05-20"), 
+                ("21st May to 22nd May", "2025-05-21"), 
+                ("22nd May to 23rd May", "2025-05-22")]
 
-# User view for deposits and growth
-def user_view():
-    st.title("User View")
-    username = st.text_input("Enter your username to see your deposit history:")
+        # Loop through the days and get input for each growth rate
+        for day_label, day in days:
+            growth_rate = st.number_input(f"Growth rate for {day_label}:", min_value=0.0, step=0.01)
+            growth_rates[datetime.strptime(day, "%Y-%m-%d")] = growth_rate
 
-    if username in st.session_state['deposits_data']:
-        st.write(f"Deposits for {username}:")
-        growth_percentage = st.session_state.get('growth_rate', 0)  # Default to 0 if not set
-        growth_data = calculate_growth(st.session_state['deposits_data'], growth_percentage)
+        if st.button("Set Growth Rates"):
+            st.session_state['growth_data'] = growth_rates
+            st.success("Growth rates set successfully!")
 
-        if username in growth_data:
-            total_balance = growth_data[username]['total_balance']
-            st.write(f"Your total withdrawable balance is: {total_balance:.2f} Divines")
-            st.write("Deposit Growth Per Day:")
-            df = pd.DataFrame(growth_data[username]['deposits'], columns=['Date', 'Deposit', 'Balance'])
-            st.dataframe(df)
-    else:
-        st.write("No deposits found for this user.")
+# Display the growth data and balances for users
+def display_user_data():
+    if st.session_state.get('admin_authenticated', False):
+        st.title("Users' Deposit Data and Growth")
+        growth_data_final = calculate_growth(st.session_state['deposits_data'], st.session_state['growth_data'])
+        
+        if growth_data_final:
+            for user, data in growth_data_final.items():
+                st.subheader(f"User: {user}")
+                st.write(f"Total Balance: {data['total_balance']} Divines")
+                st.write("Deposits and Growth History:")
+                for deposit_date, deposit, balance in data['deposits']:
+                    st.write(f"Date: {deposit_date.strftime('%Y-%m-%d')} | Deposit: {deposit} | Balance: {balance}")
+        else:
+            st.write("No data available.")
 
-# Main logic: Show login, admin functions or user functions
+# Main app
 def main():
-    if st.session_state['admin_authenticated']:
-        # Admin has logged in
-        add_new_deposit()
-        set_growth_rate()
-    else:
-        # Display login or user functions
+    if not st.session_state.get('admin_authenticated', False):
         admin_login()
-        user_view()
+    else:
+        menu = ["Add Deposit", "Set Growth Rates", "View User Data"]
+        choice = st.sidebar.selectbox("Select Option", menu)
+
+        if choice == "Add Deposit":
+            add_new_deposit()
+        elif choice == "Set Growth Rates":
+            set_daily_growth_rate()
+        elif choice == "View User Data":
+            display_user_data()
 
 if __name__ == "__main__":
     main()
