@@ -1,14 +1,14 @@
-import gspread
+import json
 from oauth2client.service_account import ServiceAccountCredentials
+import streamlit as st
 
-# Define the scope and credentials
+# Load the credentials from Streamlit secrets
+credentials_info = json.loads(st.secrets["credentials_json"])  # Convert the JSON string into a dictionary
+
+# Define the scope
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-credentials = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["credentials_json"], scope)
 
-# Authorize the client
-gc = gspread.authorize(credentials)
+# Authenticate using the service account credentials
+credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_info, scope)
 
-# List all spreadsheets available to the service account
-spreadsheet_list = gc.openall()
-for sheet in spreadsheet_list:
-    print(sheet.title)
+# Proceed with your app logic here
