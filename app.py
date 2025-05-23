@@ -1,103 +1,103 @@
-import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
+import streamlit as st
 
-# Admin credentials
-ADMIN_USERNAME = "Admin"
-ADMIN_PASSWORD = "AdminPOEconomics"
-
-# Simulated data for daily deposits (example data as per your provided input)
+# Example deposits data (this would normally come from user input or a database)
 deposits_data = {
-    "username": [
-        "PoEconomics", "JESUS (Spector)", "eepee", "ElVincenzo", "Jinn", "Lord", "Chris", "Biscuit Roger", "PoEconomics", 
-        "suicideduner", "coolrd", "Dissonances", "Rycaxx", "PoEconomics", "JESUS (Spector)", "Reaper4k", "Coord", "n u", 
-        "Wylou", "Arashi", "Mav", "shootermcgavin", "Aufketa", "SatantheAngel", "Ermes", "ElVincenzo", "DavaiiLama", 
-        "ACAB", "Reaper4k", "Wohta", "bradonf333", "shinyeyes", "Hisesu", "chipseatingmonkey", "RDcabra", "Nomad443", 
-        "Alex 13", "Floon", "CHOSEN CHICKAN", "Franzclammer", "Closure", "Dissonances", "Chakkree", "Hanzel", "PoEconomics", 
-        "PIX CAIU FOTO SUMIU", "Vividly Exhausted", "kronostec", "ASH_KO", "Coolrd", "Kazaam", "Chris", "dug", 
-        "Vividly Exhausted", "n u", "sogxinran", "MIRROR_IDOL_FUBGUN", "dxdiy", "behuia", "Jinn", "conconnait", 
-        "Reaper4k", "Rasp", "Chakree", "Dorfman420", "highoncaffe1ne", "Franzclammer", "Bruh Moment", "farchioj", 
-        "ElVincenzo", "Alex13", "Mea", "Reaper4k", "conconnait", "TheDirtyDaveyy", "Viking0071", "JESUS (Spector)", 
-        "Anonx1987", "MatsumuraSan", "Steven"
-    ],
-    "deposit_amount": [
-        18.5, 9.88, 10, 5.58, 33.45, 41.69, 5, 1, 128.11, 10, 9.51, 50, 30, 19.5, 2.33, 200, 10, 30, 10, 40, 30, 18, 
-        50, 150, 100, 14.89, 50, 70, 200, 20, 20, 50, 20, 60, 6, 175.47, 120, 25, 90, 15, 30, 162.96, 46.8, 3, 19, 
-        6, 80, 20, 2.68, 80, 19, 6, 5, 13, 18, 25, 18, 40, 8.5, 2, 10, 10, 300, 4, 13.86, 4, 59, 7, 50, 7, 4, 
-        100, 100, 50, 17, 26
-    ],
-    "date": [
-        "2025-05-18", "2025-05-18", "2025-05-18", "2025-05-18", "2025-05-18", "2025-05-18", "2025-05-18", "2025-05-18", 
-        "2025-05-18", "2025-05-18", "2025-05-18", "2025-05-18", "2025-05-18", "2025-05-18", "2025-05-18", "2025-05-18", 
-        "2025-05-19", "2025-05-19", "2025-05-19", "2025-05-19", "2025-05-19", "2025-05-19", "2025-05-19", "2025-05-19", 
-        "2025-05-19", "2025-05-19", "2025-05-19", "2025-05-19", "2025-05-20", "2025-05-20", "2025-05-20", "2025-05-20", 
-        "2025-05-20", "2025-05-20", "2025-05-20", "2025-05-20", "2025-05-20", "2025-05-21", "2025-05-21", "2025-05-21", 
-        "2025-05-21", "2025-05-21", "2025-05-21", "2025-05-21", "2025-05-21", "2025-05-21", "2025-05-21", "2025-05-21", 
-        "2025-05-21", "2025-05-21", "2025-05-21", "2025-05-21", "2025-05-21", "2025-05-21", "2025-05-21", "2025-05-21", 
-        "2025-05-22", "2025-05-22", "2025-05-22", "2025-05-22", "2025-05-22", "2025-05-22", "2025-05-22", "2025-05-22", 
-        "2025-05-22", "2025-05-22", "2025-05-22", "2025-05-22"
-    ]
+    "username": ["PoEconomics", "JESUS", "Chris", "Biscuit Roger", "Lord", "Alex13"],
+    "deposit_amount": [100, 50, 200, 25, 5, 120],
+    "date": ["2023-05-18", "2023-05-18", "2023-05-19", "2023-05-19", "2023-05-20", "2023-05-20"]
 }
 
-# Convert deposit data into DataFrame
-df = pd.DataFrame(deposits_data)
-df['date'] = pd.to_datetime(df['date'])
+# Ensure that all lists have the same length, if not, add None (or a placeholder value)
+max_len = max(len(deposits_data["username"]), len(deposits_data["deposit_amount"]), len(deposits_data["date"]))
 
-# Admin login
-st.subheader("Admin Login")
-admin_username = st.text_input("Username", type="default")
-admin_password = st.text_input("Password", type="password")
+# Pad shorter lists with None (or any other placeholder value you want to use)
+deposits_data["username"].extend([None] * (max_len - len(deposits_data["username"])))
+deposits_data["deposit_amount"].extend([None] * (max_len - len(deposits_data["deposit_amount"])))
+deposits_data["date"].extend([None] * (max_len - len(deposits_data["date"])))
 
-# Admin login validation
-if admin_username == ADMIN_USERNAME and admin_password == ADMIN_PASSWORD:
-    st.success("Logged in as Admin")
-    
-    # Display deposit history
-    st.subheader("Deposit History")
-    st.dataframe(df)
-
-    # User search for wallet
-    st.subheader("Search for Your Wallet")
-    username_input = st.text_input("Enter your username")
-
-    # Growth calculation logic
-    def calculate_growth(initial_amount, deposit_date, daily_growth_percentage):
-        today = datetime.today()
-        days_elapsed = (today - deposit_date).days
-        growth_multiplier = (1 + daily_growth_percentage / 100) ** days_elapsed
-        return initial_amount * growth_multiplier
-
-    # Admin controls for growth percentage
-    daily_growth_percentage = st.number_input("Set Daily Growth Percentage (%)", min_value=0.0, max_value=100.0, value=5.0)
-    st.write(f"Daily Growth Percentage: {daily_growth_percentage}%")
-    
-    # Update daily growth percentage
-    if st.button("Update Growth Percentage"):
-        st.success(f"Growth percentage updated to {daily_growth_percentage}%")
-        
-        # Generate a new entry for the day with the updated percentage
-        new_day = pd.DataFrame({
-            "username": df['username'].unique(),
-            "deposit_amount": [0] * len(df['username'].unique()),  # No deposit on the new day
-            "date": [datetime.today().strftime('%Y-%m-%d')] * len(df['username'].unique())  # Today's date
-        })
-        
-        df = pd.concat([df, new_day], ignore_index=True)
-
-    if username_input:
-        # Filter data for the entered user
-        user_data = df[df['username'] == username_input]
-        
-        if not user_data.empty:
-            st.write(f"Showing data for {username_input}")
-            
-            # Calculate growth for each deposit
-            user_data['growth_value'] = user_data.apply(lambda row: calculate_growth(row['deposit_amount'], row['date'], daily_growth_percentage), axis=1)
-            user_data['total_value'] = user_data['growth_value']
-            
-            # Display user-specific data with growth
-            st.dataframe(user_data[['date', 'deposit_amount', 'growth_value', 'total_value']])
-        else:
-            st.write(f"No deposits found for user {username_input}")
+# Check if the lengths of all lists match
+if len(deposits_data["username"]) == len(deposits_data["deposit_amount"]) == len(deposits_data["date"]):
+    df = pd.DataFrame(deposits_data)
 else:
-    st.warning("Invalid username or password")
+    print("Data columns have mismatched lengths!")
+
+# Display the dataframe in Streamlit
+st.write("Deposits Data:")
+st.write(df)
+
+# Assuming the starting deposit for each user is already set up
+starting_balance = {
+    "PoEconomics": 100,  # example
+    "JESUS": 50,
+    "Chris": 200,
+    "Biscuit Roger": 25,
+    "Lord": 5,
+    "Alex13": 120
+}
+
+# Function to calculate percentage growth
+def calculate_growth(previous_amount, current_amount):
+    if previous_amount == 0:
+        return 0  # Avoid division by zero
+    growth = ((current_amount - previous_amount) / previous_amount) * 100
+    return growth
+
+# Add the growth percentage column
+growth_percentages = []
+
+# Assume we have some history to compare the growth (for simplicity, using the same data here)
+for index, row in df.iterrows():
+    username = row["username"]
+    if username in starting_balance:
+        previous_balance = starting_balance[username]  # Starting balance for comparison
+        current_balance = row["deposit_amount"]
+        growth = calculate_growth(previous_balance, current_balance)
+        growth_percentages.append(growth)
+    else:
+        growth_percentages.append(None)  # If no starting balance, no growth
+
+df["growth_percentage"] = growth_percentages
+
+# Display the dataframe with growth percentages in Streamlit
+st.write("Deposits Data with Growth Percentage:")
+st.write(df)
+
+# Admin functionality to set a new percentage and update future deposits
+
+def set_new_growth_percentage(user, new_growth_percentage):
+    """
+    Updates the starting balance with a new percentage growth for the user.
+    """
+    if user in starting_balance:
+        # Update the balance based on new growth percentage
+        previous_balance = starting_balance[user]
+        new_balance = previous_balance * (1 + new_growth_percentage / 100)
+        starting_balance[user] = new_balance
+        st.write(f"New balance for {user}: {new_balance}")
+    else:
+        st.write(f"User {user} not found!")
+
+# Streamlit UI for Admin to set a new growth percentage
+st.sidebar.title("Admin Settings")
+user_input = st.sidebar.selectbox("Select User", list(starting_balance.keys()))
+growth_input = st.sidebar.number_input("Set Growth Percentage", min_value=0, max_value=100, step=1)
+if st.sidebar.button("Update Growth"):
+    set_new_growth_percentage(user_input, growth_input)
+
+# Display the updated starting balances in Streamlit
+st.write("Updated Starting Balances:")
+st.write(starting_balance)
+
+# Now, you can define a function to search for a user's wallet and see growth
+def view_user_wallet(username):
+    if username in starting_balance:
+        st.write(f"Wallet for {username}: {starting_balance[username]}")
+    else:
+        st.write(f"User {username} not found!")
+
+# Streamlit UI for users to view their wallet
+user_wallet_input = st.text_input("Enter your username to view wallet")
+if user_wallet_input:
+    view_user_wallet(user_wallet_input)
