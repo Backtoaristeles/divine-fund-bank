@@ -1,29 +1,30 @@
-import json
+import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import streamlit as st
-import gspread
+import pandas as pd
 
-# Fetch credentials from Streamlit secrets
-credentials_info = st.secrets["credentials_json"]
-
-# Ensure the credentials_info is in dictionary format, if it's a string
-if isinstance(credentials_info, str):
-    credentials_info = json.loads(credentials_info)
-
-# Define the scope for Google Sheets and Google Drive
+# Google Sheets API connection
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-
-# Authenticate using the service account credentials
-credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_info, scope)
-
-# Authorize the credentials with gspread
+credentials = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["credentials_json"], scope)
 gc = gspread.authorize(credentials)
 
-# Open the Google Sheet by its name
-SHEET_NAME = "divine_fund_bank"  # Use the correct sheet name here
+# Define the sheet name
+SHEET_NAME = "divine_fund_bank"
 
 try:
+    # Open the Google Sheet by name
     sh = gc.open(SHEET_NAME)
-    print(f"Successfully opened the sheet: {SHEET_NAME}")
+    worksheet = sh.get_worksheet(0)  # You can specify which sheet by index or by name
+    data = worksheet.get_all_records()  # Fetch all rows as a list of dictionaries
+
+    # Convert to DataFrame for easier handling in Streamlit
+    df = pd.DataFrame(data)
+
+    # Display the DataFrame in Streamlit
+    st.write("Data from Google Sheets:")
+    st.dataframe(df)  # Display the data
+
 except gspread.SpreadsheetNotFound:
-    print(f"Error: The sheet named '{SHEET_NAME}' could not be found.")
+    st.error(f"The sheet named '{SHEET_NAME}' could not be found.")
+except Exception as e:
+    st.error(f"An error occurred: {e}")
