@@ -39,7 +39,7 @@ def calculate_growth(deposits_data, growth_data):
 # Function for Admin to login
 def admin_login():
     st.title("Admin Login")
-    username = st.text_input("Username", type="password")
+    username = st.text_input("Username", value="Admin")  # Make username visible
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
@@ -80,20 +80,22 @@ def set_daily_growth_rate():
 
         # Loop through the days and get input for each growth rate
         for day_label, day in days:
-            growth_rate = st.number_input(f"Growth rate for {day_label}:", min_value=0.0, step=0.01)
+            growth_rate = st.number_input(f"Growth rate for {day_label} (up to 4 decimals):", min_value=0.0, step=0.0001, format="%.4f")
             growth_rates[datetime.strptime(day, "%Y-%m-%d")] = growth_rate
 
         if st.button("Set Growth Rates"):
             st.session_state['growth_data'] = growth_rates
             st.success("Growth rates set successfully!")
 
-# Display the growth data and balances for users
+# Display all user wallets and growth data
 def display_user_data():
     if st.session_state.get('admin_authenticated', False):
         st.title("Users' Deposit Data and Growth")
         growth_data_final = calculate_growth(st.session_state['deposits_data'], st.session_state['growth_data'])
         
+        # Display user data for all users
         if growth_data_final:
+            st.write("All User Wallets:")
             for user, data in growth_data_final.items():
                 st.subheader(f"User: {user}")
                 st.write(f"Total Balance: {data['total_balance']} Divines")
@@ -103,12 +105,30 @@ def display_user_data():
         else:
             st.write("No data available.")
 
+# User wallet search and display
+def search_wallet():
+    st.title("Search User Wallet")
+    user_to_search = st.text_input("Enter your username to search for your wallet:")
+
+    if user_to_search:
+        if user_to_search in st.session_state['deposits_data']:
+            user_data = st.session_state['deposits_data'][user_to_search]
+            growth_data_final = calculate_growth(st.session_state['deposits_data'], st.session_state['growth_data'])
+            user_growth = growth_data_final.get(user_to_search, {})
+            
+            st.write(f"Total Balance for {user_to_search}: {user_growth['total_balance']} Divines")
+            st.write("Deposits and Growth History:")
+            for deposit_date, deposit, balance in user_growth['deposits']:
+                st.write(f"Date: {deposit_date.strftime('%Y-%m-%d')} | Deposit: {deposit} | Balance: {balance}")
+        else:
+            st.write("No data found for this user.")
+
 # Main app
 def main():
     if not st.session_state.get('admin_authenticated', False):
         admin_login()
     else:
-        menu = ["Add Deposit", "Set Growth Rates", "View User Data"]
+        menu = ["Add Deposit", "Set Growth Rates", "View User Data", "Search User Wallet"]
         choice = st.sidebar.selectbox("Select Option", menu)
 
         if choice == "Add Deposit":
@@ -117,6 +137,8 @@ def main():
             set_daily_growth_rate()
         elif choice == "View User Data":
             display_user_data()
+        elif choice == "Search User Wallet":
+            search_wallet()
 
 if __name__ == "__main__":
     main()
