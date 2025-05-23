@@ -1,98 +1,92 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
-# Admin credentials
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "adminpass"
+# Starting with a mockup for FundBank system
 
-# Initialize session state
-if 'user_deposits' not in st.session_state:
-    st.session_state.user_deposits = {}
-if 'growth_percentage' not in st.session_state:
-    st.session_state.growth_percentage = {}
+# Admin credentials (hardcoded for simplicity)
+ADMIN_USERNAME = "Admin"
+ADMIN_PASSWORD = "AdminPOEconomics"
 
-# Sample initial data for user deposits (to simulate the bank's records)
-if 'deposits_data' not in st.session_state:
-    st.session_state.deposits_data = pd.DataFrame(columns=['Username', 'Date', 'Deposit'])
+# Sample data for deposits, typically this would come from a database or file
+# This will simulate deposit data for the users
+deposits_data = {
+    "username": ["user1", "user2", "user1", "user3"],
+    "deposit_amount": [1000, 500, 2000, 1500],
+    "date": [
+        "2025-05-18", 
+        "2025-05-19", 
+        "2025-05-20", 
+        "2025-05-21"
+    ]
+}
 
-# Function to authenticate admin
-def admin_login():
-    st.title("FundBank Admin Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type='password')
+# Function to calculate the percentage growth
+def calculate_growth(initial_amount, current_amount):
+    return ((current_amount - initial_amount) / initial_amount) * 100
 
-    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-        st.session_state.is_admin_authenticated = True
-        st.success("Logged in as Admin!")
-    else:
-        st.session_state.is_admin_authenticated = False
-        st.warning("Invalid credentials")
+# Streamlit app structure
+st.title("FundBank - Deposit Tracking")
 
-# Function to handle user deposit tracking
-def user_deposit_page():
-    st.title("FundBank - User Deposit Tracker")
+# Admin login
+st.subheader("Admin Login")
+
+# Admin login logic
+admin_username = st.text_input("Username", type="default")
+admin_password = st.text_input("Password", type="password")
+
+if admin_username == ADMIN_USERNAME and admin_password == ADMIN_PASSWORD:
+    st.success("Logged in as Admin")
     
-    # Get today's date for deposit tracking
-    today = datetime.today().strftime('%Y-%m-%d')
-    user_name = st.text_input("Enter your username:")
+    # Get deposit details from simulated data
+    df = pd.DataFrame(deposits_data)
     
-    if user_name:
-        user_deposit = 0
-        user_growth = 0
-        if user_name in st.session_state.user_deposits:
-            user_deposit = st.session_state.user_deposits[user_name].get(today, 0)
-            user_growth = st.session_state.growth_percentage.get(today, 0)
-
-        st.write(f"Your deposit for today: {user_deposit} units")
-        st.write(f"Your deposit growth today: {user_growth}%")
+    # Add a date column that will be used for growth calculation (example starts on May 18th)
+    df['date'] = pd.to_datetime(df['date'])
+    
+    # Set up the starting date for the bank
+    start_date = datetime(2025, 5, 18)
+    
+    # Show the deposit table
+    st.subheader("Deposit History")
+    st.dataframe(df)
+    
+    # Search for user wallet
+    st.subheader("Search for Your Wallet")
+    username_input = st.text_input("Enter your username")
+    
+    if username_input:
+        user_data = df[df['username'] == username_input]
         
-        # Display the current balance and growth over time for this user
-        if user_name in st.session_state.user_deposits:
-            user_data = pd.DataFrame.from_dict(st.session_state.user_deposits[user_name], orient='index', columns=['Deposit'])
-            user_data.index.name = 'Date'
-            st.dataframe(user_data)
-        
-        # Option to add a deposit (For the user)
-        new_deposit = st.number_input("Deposit for today (Units):", min_value=0)
-        if st.button("Submit Deposit"):
-            if user_name not in st.session_state.user_deposits:
-                st.session_state.user_deposits[user_name] = {}
-            st.session_state.user_deposits[user_name][today] = new_deposit
-            st.success(f"Deposit of {new_deposit} units added successfully for {user_name}!")
-
-# Admin controls to set the growth percentage each day
-def admin_controls():
-    st.title("Admin Controls")
-
-    # Set growth percentage for the day
-    growth_percentage = st.number_input("Set the growth percentage for today:", min_value=0, max_value=100)
-    today = datetime.today().strftime('%Y-%m-%d')
-
-    if st.button("Set Growth Percentage"):
-        st.session_state.growth_percentage[today] = growth_percentage
-        st.success(f"Growth percentage for {today} set to {growth_percentage}%")
-
-    # Display the current growth percentages for the past days
-    st.write("Growth percentages for the past days:")
-    growth_data = pd.DataFrame(list(st.session_state.growth_percentage.items()), columns=["Date", "Growth Percentage"])
-    st.dataframe(growth_data)
-
-# Main function to display different pages for users and admins
-def main():
-    if 'is_admin_authenticated' not in st.session_state:
-        st.session_state.is_admin_authenticated = False
-
-    page = st.sidebar.selectbox("Select a Page", ["User Deposit Tracker", "Admin Controls"])
-
-    if page == "User Deposit Tracker":
-        user_deposit_page()
-    elif page == "Admin Controls":
-        if st.session_state.is_admin_authenticated:
-            admin_controls()
+        if not user_data.empty:
+            st.write(f"Showing data for {username_input}")
+            
+            # Calculate daily growth for the user
+            user_deposits = user_data.sort_values(by="date")
+            initial_amount = user_deposits.iloc[0]['deposit_amount']
+            
+            # Calculate growth for each day
+            growth_values = []
+            for index, row in user_deposits.iterrows():
+                growth = calculate_growth(initial_amount, row['deposit_amount'])
+                growth_values.append(growth)
+            
+            user_deposits['growth_percentage'] = growth_values
+            
+            # Show the user deposit details with growth
+            st.dataframe(user_deposits[['date', 'deposit_amount', 'growth_percentage']])
         else:
-            admin_login()
+            st.write("No data found for this username.")
+    
+    # Set the percentage growth for each day (admin functionality)
+    st.subheader("Admin: Set Daily Growth Percentage")
+    
+    growth_percentage = st.number_input("Enter Growth Percentage", min_value=0, max_value=100, value=5)
+    
+    if st.button("Set Growth"):
+        st.write(f"Daily growth set to {growth_percentage}%")
 
-if __name__ == "__main__":
-    main()
+else:
+    st.warning("Invalid username or password")
+
